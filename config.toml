@@ -1,3 +1,5 @@
+ignoreErrors = ["error-remote-getjson"]
+
 publishDir = "docs"
 
 baseURL = "http://example.org/"
@@ -16,6 +18,12 @@ theme = "LoveIt"
 [params]
   # LoveIt 主题版本
   version = "0.2.X"
+  defaultTheme = "dark"
+  [params.footer]
+    enable = true
+    copyright = true
+    author = true
+    since = 2021
 
 [menu]
   [[menu.main]]
@@ -45,6 +53,14 @@ theme = "LoveIt"
     url = "/categories/"
     title = ""
     weight = 3
+  [[menu.main]]
+    identifier = "about"
+    pre = ""
+    post = ""
+    name = "关于"
+    url = "/about/"
+    title = ""
+    weight = 5
 
 # Hugo 解析文档的配置
 [markup]
@@ -52,3 +68,39 @@ theme = "LoveIt"
   [markup.highlight]
     # false 是必要的设置 (https://github.com/dillonzq/LoveIt/issues/158)
     noClasses = false
+
+
+[params.home.profile]
+  enable = true
+  # Gravatar 邮箱，用于优先在主页显示的头像
+  gravatarEmail = ""
+  # 主页显示头像的 URL
+  avatarURL = "https://cdn.jsdelivr.net/gh/yitulin/pictures/images/%E5%A4%B4%E5%83%8F_20210306022845.png"
+  # 主页显示的网站标题 (支持 HTML 格式)
+  title = "悄悄打工！惊艳所有人！！"
+  # 主页显示的网站副标题
+  subtitle = "我与我周旋久，宁作我！"
+  # 是否为副标题显示打字机动画
+  typeit = true
+  # 是否显示社交账号
+  social = true
+  # 免责声明 (支持 HTML 格式)
+  disclaimer = "本博客内容纯属虚构"
+  # 主页文章列表
+  [params.home.posts]
+  enable = true
+  # 主页每页显示文章数量
+  paginate = 7
+[params.social]
+  GitHub = "yitulin"
+  Bilibili = "431833355"
+  Email = "wangyumumu@aliyun.com"
+  Steam = "xxxxxx"
+  Zhihu = "xxxxxx"
+  Weibo = "xxxxxx"
+  RSS = true
+
+# 作者配置
+[author]
+  name = "yitu"
+
