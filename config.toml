@@ -2,7 +2,7 @@ ignoreErrors = ["error-remote-getjson"]
 
 publishDir = "docs"
 
-baseURL = "http://example.org/"
+baseURL = "https://yitulin.github.io/"
 # [en, zh-cn, fr, ...] 设置默认的语言
 defaultContentLanguage = "zh-cn"
 # 网站语言, 仅在这里 CN 大写
@@ -24,6 +24,12 @@ theme = "LoveIt"
     copyright = true
     author = true
     since = 2021
+
+[params.app]
+# whether to omit favicon resource links
+noFavicon = false
+# modern SVG favicon to use in place of older style .png and .ico files
+svgFavicon = "https://cdn.jsdelivr.net/gh/yitulin/pictures/images/%E5%A4%B4%E5%83%8F_20210306022845.png"
 
 [menu]
   [[menu.main]]
