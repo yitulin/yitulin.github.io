@@ -1,21 +1,14 @@
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
         <title>所有文章 - yitu&#39;s blog</title>
-        <link>http://example.org/posts/</link>
+        <link>https://yitulin.github.io/posts/</link>
         <description>所有文章 | yitu&#39;s blog</description>
-        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><lastBuildDate>Sat, 06 Mar 2021 01:55:27 &#43;0800</lastBuildDate><atom:link href="http://example.org/posts/" rel="self" type="application/rss+xml" /><item>
-    <title>Spring</title>
-    <link>http://example.org/posts/spring/</link>
-    <pubDate>Sat, 06 Mar 2021 01:55:27 &#43;0800</pubDate>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><lastBuildDate>Tue, 09 Mar 2021 23:22:13 &#43;0800</lastBuildDate><atom:link href="https://yitulin.github.io/posts/" rel="self" type="application/rss+xml" /><item>
+    <title>Dubbo服务暴露探究</title>
+    <link>https://yitulin.github.io/posts/dubbo_service/</link>
+    <pubDate>Tue, 09 Mar 2021 23:22:13 &#43;0800</pubDate>
     <author>作者</author>
-    <guid>http://example.org/posts/spring/</guid>
-    <description><![CDATA[]]></description>
-</item><item>
-    <title>Dubbo</title>
-    <link>http://example.org/posts/dubbo/</link>
-    <pubDate>Fri, 05 Mar 2021 22:22:23 &#43;0800</pubDate>
-    <author>作者</author>
-    <guid>http://example.org/posts/dubbo/</guid>
-    <description><![CDATA[Dubbo与Spring协作 12 Spring的NameSpaceHandler 三级 四级 五级 六级 sss Dubbo与SpringBoot协作 Dubbo SPI Dub]]></description>
+    <guid>https://yitulin.github.io/posts/dubbo_service/</guid>
+    <description><![CDATA[Dubbo服务暴露探究 本文基于Dubbo源码版本号：eef6b450fc69f6670d19c050719a6766343a1729 编写时，]]></description>
 </item></channel>
 </rss>

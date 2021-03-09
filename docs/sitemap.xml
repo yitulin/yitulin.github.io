@@ -2,9 +2,12 @@
     xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
     xmlns:xhtml="http://www.w3.org/1999/xhtml"
     ><url>
-            <loc>http://example.org/posts/</loc><lastmod>2021-03-06T01:55:27&#43;08:00</lastmod></url><url>
-            <loc>http://example.org/posts/spring/</loc><lastmod>2021-03-06T01:55:27&#43;08:00</lastmod></url><url>
-            <loc>http://example.org/</loc><lastmod>2021-03-06T01:55:27&#43;08:00</lastmod></url><url>
-            <loc>http://example.org/posts/dubbo/</loc><lastmod>2021-03-05T22:22:23&#43;08:00</lastmod></url><url>
-            <loc>http://example.org/categories/</loc></url><url>
-            <loc>http://example.org/tags/</loc></url></urlset>
+            <loc>https://yitulin.github.io/categories/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/tags/dubbo/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/categories/dubbo/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/posts/dubbo_service/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/posts/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/tags/spring/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/tags/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/</loc><lastmod>2021-03-09T23:22:13&#43;08:00</lastmod></url><url>
+            <loc>https://yitulin.github.io/about/</loc><lastmod>2021-03-06T02:47:01&#43;08:00</lastmod></url></urlset>

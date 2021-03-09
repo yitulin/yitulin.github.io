@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
+        <title>Dubbo服务暴露探究 - yitu&#39;s blog</title><meta name="Description" content=""><meta property="og:title" content="Dubbo服务暴露探究" />
+<meta property="og:description" content="Dubbo服务暴露探究 本文基于Dubbo源码版本号：eef6b450fc69f6670d19c050719a6766343a1729 编写时，" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://yitulin.github.io/posts/dubbo_service/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2021-03-09T23:22:13&#43;08:00" />
+<meta property="article:modified_time" content="2021-03-09T23:22:13&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Dubbo服务暴露探究"/>
+<meta name="twitter:description" content="Dubbo服务暴露探究 本文基于Dubbo源码版本号：eef6b450fc69f6670d19c050719a6766343a1729 编写时，"/>
+<meta name="application-name" content="yitu&#39;s blog">
+<meta name="apple-mobile-web-app-title" content="yitu&#39;s blog"><link rel="icon" href="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/%E5%A4%B4%E5%83%8F_20210306022845.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="manifest" href="/site.webmanifest"><link rel="canonical" href="https://yitulin.github.io/posts/dubbo_service/" /><link rel="stylesheet" href="/lib/normalize/normalize.min.css"><link rel="stylesheet" href="/css/style.min.css"><link rel="stylesheet" href="/lib/fontawesome-free/all.min.css"><link rel="stylesheet" href="/lib/animate/animate.min.css"><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "Dubbo服务暴露探究",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https:\/\/yitulin.github.io\/posts\/dubbo_service\/"
+        },"genre": "posts","keywords": "Dubbo, Spring","wordcount":  8214 ,
+        "url": "https:\/\/yitulin.github.io\/posts\/dubbo_service\/","datePublished": "2021-03-09T23:22:13+08:00","dateModified": "2021-03-09T23:22:13+08:00","publisher": {
+            "@type": "Organization",
+            "name": "yitu"},"author": {
+                "@type": "Person",
+                "name": "yitu"
+            },"description": ""
+    }
+    </script></head>
+    <body header-desktop="" header-mobile=""><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('dark' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'dark' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="/" title="yitu&#39;s blog">yitu&#39;s blog</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="/posts/"> 文章 </a><a class="menu-item" href="/tags/"> 标签 </a><a class="menu-item" href="/categories/"> 分类 </a><a class="menu-item" href="/about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="/" title="yitu&#39;s blog">yitu&#39;s blog</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="/posts/" title="">文章</a><a class="menu-item" href="/tags/" title="">标签</a><a class="menu-item" href="/categories/" title="">分类</a><a class="menu-item" href="/about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw"></i>
+            </a></div>
+    </div>
+</header>
+<div class="search-dropdown desktop">
+    <div id="search-dropdown-desktop"></div>
+</div>
+<div class="search-dropdown mobile">
+    <div id="search-dropdown-mobile"></div>
+</div>
+<main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animated flipInX">Dubbo服务暴露探究</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="/" title="Author" rel=" author" class="author"><i class="fas fa-user-circle fa-fw"></i>yitu</a></span>&nbsp;<span class="post-category">收录于 <a href="/categories/dubbo/"><i class="far fa-folder fa-fw"></i>Dubbo</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw"></i>&nbsp;<time datetime="2021-03-09">2021-03-09</time>&nbsp;<i class="fas fa-pencil-alt fa-fw"></i>&nbsp;约 8214 字&nbsp;
+                <i class="far fa-clock fa-fw"></i>&nbsp;预计阅读 17 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#dubbo服务暴露流程是如何融入spring容器的">Dubbo服务暴露流程是如何融入Spring容器的？</a></li>
+        <li><a href="#dubbo服务暴露流程如何融入springboot">Dubbo服务暴露流程如何融入SpringBoot</a></li>
+        <li><a href="#dubbo的配置部分">Dubbo的配置部分</a></li>
+        <li><a href="#dubbo服务正式暴露">Dubbo服务正式暴露</a></li>
+        <li><a href="#流程图总结回顾">流程图总结回顾</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><h1 id="dubbo服务暴露探究">Dubbo服务暴露探究</h1>
+<blockquote>
+<p><strong>本文基于Dubbo源码版本号：eef6b450fc69f6670d19c050719a6766343a1729</strong>
+<strong>编写时，master分支Dubbo版本为2.7.10-SNAPSHOT</strong>
+<strong>IDE是Intellij IDEA 2020.3.1</strong></p>
+</blockquote>
+<p><!-- raw HTML omitted -->前方高能！包含大量源码与贴图！<!-- raw HTML omitted --></p>
+<p><strong>Dubbo服务暴露流程起始于Spring容器启动后，</strong> 通过监听Spring容器的ContextRefreshedEvent事件实现。
+那么Dubbo是如何向Spring容器注册监听事件的呢？</p>
+<h3 id="dubbo服务暴露流程是如何融入spring容器的">Dubbo服务暴露流程是如何融入Spring容器的？</h3>
+<p>阅读以下内容，会涉及的相关知识有：</p>
+<ol>
+<li>Spring自定义命名空间</li>
+<li>Spring容器启动刷新过程</li>
+<li>Spring实例化Bean过程</li>
+<li>Spring的BeanPostProcessor扩展点</li>
+<li>Spring的ApplicationContextAware</li>
+<li>Spring的ApplicationListener</li>
+</ol>
+<blockquote>
+<p>从Spring2.0版本起，支持自定义XML Bean定义解析器，以及将此类解析器集成到Spring IoC容器中。
+参考Spring官方文档：https://docs.spring.io/spring-framework/docs/5.2.x/spring-framework-reference/core.html#xml-custom</p>
+</blockquote>
+<blockquote>
+<p>Spring自定义命名空间的使用，涉及 META-INF/spring.handlers 文件。
+参考Spring官方文档：https://docs.spring.io/spring-framework/docs/5.2.x/spring-framework-reference/core.html#xsd-custom-registration</p>
+</blockquote>
+<p>在Dubbo工程内检索文件：spring.handlers
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307170713.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307170713.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307170713.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307170713.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307170713.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307170713.png" />
+文件内容如下：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307171346.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307171346.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307171346.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307171346.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307171346.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307171346.png" /></p>
+<p>进入DubboNamespaceHandler类，查看类图，有实现NamespaceHandler接口，其中方法parse是实现自定义命名空间关键方法。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">BeanDefinition</span> <span class="nf">parse</span><span class="o">(</span><span class="n">Element</span> <span class="n">element</span><span class="o">,</span> <span class="n">ParserContext</span> <span class="n">parserContext</span><span class="o">);</span>
+</code></pre></div><p><img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222559.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222559.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222559.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222559.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222559.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222559.png" /></p>
+<p>在DubboNamespaceHandler类的parse(Element element, ParserContext parserContext)方法实现中，有一行</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">registerCommonBeans</span><span class="o">(</span><span class="n">registry</span><span class="o">);</span>
+</code></pre></div><p>在此行打上断点，debug运行dubbo工程中的demo-xml模块的测试类Application的main方法，路径如下图：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307223423.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307223423.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307223423.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307223423.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307223423.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307223423.png" /></p>
+<p>当程序第一次运行到断点处时，main线程栈信息如下图：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222144.jpg"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222144.jpg, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222144.jpg 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222144.jpg 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222144.jpg"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307222144.jpg" />
+从下往上分析main线程栈中的方法调用过程，大致得到Spring的自定义命名空间实现原理，其中使用了委派模式（委派模式不属于GOF23种设计模式）。</p>
+<blockquote>
+<p>题外话：GOF23种设计模式，GOF是The Gang of Four，四人帮的意思，包括ErichGamma、Richard Helm、Ralph Johnson、John Vlissides。</p>
+</blockquote>
+<ol>
+<li>Spring容器初次启动刷新流程中，obtainFreshBeanFactory()方法判断当前还没有创建BeanFactory实例；</li>
+<li>创建BeanFactory实例：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">DefaultListableBeanFactory</span> <span class="n">beanFactory</span> <span class="o">=</span> <span class="n">createBeanFactory</span><span class="o">();</span>
+</code></pre></div></li>
+<li>加载bean定义信息：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">loadBeanDefinitions</span><span class="o">(</span><span class="n">beanFactory</span><span class="o">);</span>
+</code></pre></div></li>
+<li>DefaultBeanDefinitionDocumentReader中判断出[dubbo:application: null]并非默认的命名空间，于是通过委派角色将具体的处理委派给对应的任务角色：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">delegate</span><span class="o">.</span><span class="na">parseCustomElement</span><span class="o">(</span><span class="n">ele</span><span class="o">);</span>
+</code></pre></div></li>
+<li>解析得到DubboNamespaceHandler实例：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">NamespaceHandler</span> <span class="n">handler</span> <span class="o">=</span> <span class="k">this</span><span class="o">.</span><span class="na">readerContext</span><span class="o">.</span><span class="na">getNamespaceHandlerResolver</span><span class="o">().</span><span class="na">resolve</span><span class="o">(</span><span class="n">namespaceUri</span><span class="o">);</span>
+</code></pre></div></li>
+<li>正式进入DubboNamespaceHandler的parse方法实现：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">handler</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="n">ele</span><span class="o">,</span> <span class="k">new</span> <span class="n">ParserContext</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="na">readerContext</span><span class="o">,</span> <span class="k">this</span><span class="o">,</span> <span class="n">containingBd</span><span class="o">));</span>
+</code></pre></div></li>
+</ol>
+<hr>
+<p>进入registerCommonBeans(registry)的实现，可以看到有这么一行代码</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">registerInfrastructureBean</span><span class="o">(</span><span class="n">registry</span><span class="o">,</span> <span class="n">DubboApplicationListenerRegistrar</span><span class="o">.</span><span class="na">BEAN_NAME</span><span class="o">,</span>
+                <span class="n">DubboApplicationListenerRegistrar</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</code></pre></div><p>作用是向容器中注册org.apache.dubbo.config.spring.context.DubboApplicationListenerRegistrar类的Bean定义信息。</p>
+<p>我们进入DubboApplicationListenerRegistrar看看这个类，
+DubboApplicationListenerRegistrar类实现了ApplicationContextAware接口，其对应的方法：setApplicationContext(ApplicationContext applicationContext)；
+具体的代码实现中，发现这么一行：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">addApplicationListeners</span><span class="o">((</span><span class="n">ConfigurableApplicationContext</span><span class="o">)</span> <span class="n">applicationContext</span><span class="o">);</span>
+</code></pre></div><p>这个代码与Spring的事件扯上关系了。先在这一行打上断点，直接放行到此，看看这个流程的堆栈信息。
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307232915.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307232915.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307232915.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307232915.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307232915.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210307232915.png" />
+依然从下往上分析main线程栈：</p>
+<ol>
+<li>在Spring容器启动刷新过程中，倒数第二步，实例化所有非延迟初始化的单例：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">finishBeanFactoryInitialization</span><span class="o">(</span><span class="n">beanFactory</span><span class="o">);</span>
+</code></pre></div></li>
+<li>当执行到实例化DubboApplicationListenerRegistrar类的Bean时，进入实例化Bean的第三步，bean的初始化：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">exposedObject</span> <span class="o">=</span> <span class="n">initializeBean</span><span class="o">(</span><span class="n">beanName</span><span class="o">,</span> <span class="n">exposedObject</span><span class="o">,</span> <span class="n">mbd</span><span class="o">);</span>
+</code></pre></div></li>
+<li>在执行初始化方法前，先处理BeanPostProcessor扩展点，其中一个实现是ApplicationContextAwareProcessor：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">wrappedBean</span> <span class="o">=</span> <span class="n">applyBeanPostProcessorsBeforeInitialization</span><span class="o">(</span><span class="n">wrappedBean</span><span class="o">,</span> <span class="n">beanName</span><span class="o">);</span>
+</code></pre></div></li>
+<li>最终调用了：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="o">((</span><span class="n">ApplicationContextAware</span><span class="o">)</span> <span class="n">bean</span><span class="o">).</span><span class="na">setApplicationContext</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="na">applicationContext</span><span class="o">);</span>
+</code></pre></div><p>此处bean是DubboApplicationListenerRegistrar类的实例，由此来到了断点处。</p>
+</li>
+</ol>
+<hr>
+<p>接下来Dubbo正式向Spring容器添加自定义事件。
+可以看到addApplicationListeners方法只做了两件事，向Spring容器添加了两个事件监听器。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">context</span><span class="o">.</span><span class="na">addApplicationListener</span><span class="o">(</span><span class="n">createDubboBootstrapApplicationListener</span><span class="o">(</span><span class="n">context</span><span class="o">));</span>
+<span class="n">context</span><span class="o">.</span><span class="na">addApplicationListener</span><span class="o">(</span><span class="n">createDubboLifecycleComponentApplicationListener</span><span class="o">(</span><span class="n">context</span><span class="o">));</span>
+</code></pre></div><p>createDubboBootstrapApplicationListener(context)方法中，创建了DubboBootstrapApplicationListener对象。
+看看DubboBootstrapApplicationListener类结构：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308000316.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308000316.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308000316.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308000316.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308000316.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308000316.png" /></p>
+<p>在DubboBootstrapApplicationListener类的onApplicationContextEvent方法实现中打个断点，然后放行。
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308001326.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308001326.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308001326.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308001326.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308001326.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308001326.png" />
+依然从下往上分析main线程栈：</p>
+<ol>
+<li>Spring容器启动刷新的最后一步中，有个小步骤是：
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">publishEvent</span><span class="o">(</span><span class="k">new</span> <span class="n">ContextRefreshedEvent</span><span class="o">(</span><span class="k">this</span><span class="o">));</span>
+</code></pre></div><p>此处发布了Spring容器刷新事件；</p>
+</li>
+<li>事件执行先到达OnceApplicationContextEventListener类的onApplicationEvent(ApplicationEvent event)实现，然后转到DubboBootstrapApplicationListener类的onApplicationContextEvent(ApplicationContextEvent event)方法。</li>
+</ol>
+<hr>
+<p>如果是ContextRefreshedEvent事件，执行：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">onContextRefreshedEvent</span><span class="o">((</span><span class="n">ContextRefreshedEvent</span><span class="o">)</span> <span class="n">event</span><span class="o">);</span>
+</code></pre></div><p>进入方法看到只做了一步：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">dubboBootstrap</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+</code></pre></div><p>在DubboBootstrapApplicationListener的构造方法中可以看到关于dubboBootstrap属性的信息：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002058.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002058.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002058.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002058.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002058.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002058.png" /></p>
+<blockquote>
+<p>DubboBootstrap类使用了单例模式（饿汉式+双重检查锁）。</p>
+</blockquote>
+<p>查看start()方法，发现Dubbo服务暴露的起点。
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002716.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002716.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002716.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002716.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002716.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308002716.png" /></p>
+<h3 id="dubbo服务暴露流程如何融入springboot">Dubbo服务暴露流程如何融入SpringBoot</h3>
+<p>说完了Spring xml配置形式的集成，再来看看在SpringBoot中，Dubbo是如何融入Spring大家庭的。</p>
+<p>SpringBoot有一个知识点是自定义starter，实现关键在于META-INF/spring.factories文件,在dubbo-spring-boot-project工程源码中检索spring.factories文件，如下图：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308170638.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308170638.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308170638.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308170638.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308170638.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308170638.png" />
+匹配到了多个文件，其中两个提及了autoconfigure，即自动配置的含义，最终在compatible module下，找到DubboAutoConfiguration类。
+打开查看DubboAutoConfiguration类代码，存在注解@Configuration，可知这是一个Spring的配置类。
+其中存在一个方法，serviceAnnotationBeanPostProcessor，定义了一个Bean，其类型为ServiceAnnotationBeanPostProcessor，</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="nd">@ConditionalOnProperty</span><span class="o">(</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">DUBBO_SCAN_PREFIX</span><span class="o">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">BASE_PACKAGES_PROPERTY_NAME</span><span class="o">)</span>
+<span class="nd">@ConditionalOnBean</span><span class="o">(</span><span class="n">name</span> <span class="o">=</span> <span class="n">BASE_PACKAGES_PROPERTY_RESOLVER_BEAN_NAME</span><span class="o">)</span>
+<span class="nd">@Bean</span>
+<span class="kd">public</span> <span class="n">ServiceAnnotationBeanPostProcessor</span> <span class="nf">serviceAnnotationBeanPostProcessor</span><span class="o">(</span>
+        <span class="nd">@Qualifier</span><span class="o">(</span><span class="n">BASE_PACKAGES_PROPERTY_RESOLVER_BEAN_NAME</span><span class="o">)</span> <span class="n">PropertyResolver</span> <span class="n">propertyResolver</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">Set</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">packagesToScan</span> <span class="o">=</span> <span class="n">propertyResolver</span><span class="o">.</span><span class="na">getProperty</span><span class="o">(</span><span class="n">BASE_PACKAGES_PROPERTY_NAME</span><span class="o">,</span> <span class="n">Set</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">emptySet</span><span class="o">());</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="n">ServiceAnnotationBeanPostProcessor</span><span class="o">(</span><span class="n">packagesToScan</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div><p>查看ServiceAnnotationBeanPostProcessor类结构，发现这是一个Spring的BeanFactoryPostProcessor扩展点实现类，还是个特殊的BeanDefinitionRegistryPostProcessor实现。
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172020.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172020.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172020.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172020.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172020.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172020.png" /></p>
+<p>直接来到ServiceAnnotationBeanPostProcessor类实现BeanDefinitionRegistryPostProcessor接口的方法：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172515.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172515.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172515.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172515.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172515.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308172515.png" /></p>
+<p>看到了熟悉的类DubboBootstrapApplicationListener，显然，在这里把这个类信息注册到Spring容器后，后续步骤与xml配置本质上是一样的。</p>
+<h3 id="dubbo的配置部分">Dubbo的配置部分</h3>
+<p>回到Dubbo暴露的起点，即进入org.apache.dubbo.config.bootstrap.DubboBootstrap#exportServices.exportServices()方法内部：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205349.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205349.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205349.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205349.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205349.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205349.png" />
+出现了一个新的角色configManager，通过getServices()方法查看类的代码，看到有个addConfig(AbstractConfig config)方法，打上断点，重新运行程序（终止当前运行，再重新开始运行，exportServices处已经是将各项配置都添加到configManager后的状态）到此处来查看此处的线程栈信息。
+断点处如下图：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205702.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205702.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205702.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205702.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205702.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308205702.png" />
+线程栈信息如下：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308210310.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308210310.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308210310.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308210310.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308210310.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210308210310.png" />
+可以看到当前方法入参config变量的值为dubbo的application配置信息，而根据线程栈信息从下往上，可以得到程序执行的步骤：</p>
+<ol>
+<li>Spring容器创建刷新的倒数第二步，初始化所有非延迟加载的单例Bean。</li>
+<li>初始化org.apache.dubbo.config.ApplicationConfig类的实例时，执行到了创建实例的第三步，执行Bean的初始化方法，</li>
+<li>org.apache.dubbo.config.ApplicationConfig类继承了org.apache.dubbo.config.AbstractConfig类，而AbstractConfig类有如下方法，使用了@PostConstruct注解，会在Bean的初始化步骤时执行。
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="nd">@PostConstruct</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">addIntoConfigManager</span><span class="o">()</span> <span class="o">{</span>
+    <span class="n">ApplicationModel</span><span class="o">.</span><span class="na">getConfigManager</span><span class="o">().</span><span class="na">addConfig</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></li>
+</ol>
+<p>同理，重复运行程序到此断点处，还会看到</p>
+<ol>
+<li>注册中心配置：org.apache.dubbo.config.RegistryConfig</li>
+<li>协议配置：org.apache.dubbo.config.ProtocolConfig</li>
+<li>服务级服务提供配置：org.apache.dubbo.config.spring.ServiceBean</li>
+<li>配置中心：org.apache.dubbo.config.ConfigCenterConfig</li>
+<li>应用级别服务提供配置：org.apache.dubbo.config.ProviderConfig</li>
+<li>应用级别服务消费配置：org.apache.dubbo.config.ConsumerConfig</li>
+<li>服务级服务消费配置：org.apache.dubbo.config.spring.ReferenceBean
+。。。</li>
+</ol>
+<p>对应的实例依次被加入configManager中。</p>
+<blockquote>
+<p>其余配置项可参照官方文档：
+<a href="https://dubbo.apache.org/zh/docs/v2.7/user/references/xml/">https://dubbo.apache.org/zh/docs/v2.7/user/references/xml/</a></p>
+</blockquote>
+<h3 id="dubbo服务正式暴露">Dubbo服务正式暴露</h3>
+<blockquote>
+<p><strong>以下部分包含大量源码，关键步骤的解释通过注释呈现。</strong></p>
+</blockquote>
+<p>还是回到 Dubbo对Spring容器刷新完成事件进行处理的地方，继续exportServices的执行。
+<strong>org.apache.dubbo.config.bootstrap.DubboBootstrap#exportServices</strong></p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">private</span> <span class="kt">void</span> <span class="nf">exportServices</span><span class="o">()</span> <span class="o">{</span>
+
+    <span class="c1">// configManager.getServices()得到了所有ServiceBean配置
+</span><span class="c1"></span>    <span class="c1">// 循环处理每个ServiceBean。
+</span><span class="c1"></span>    <span class="n">configManager</span><span class="o">.</span><span class="na">getServices</span><span class="o">().</span><span class="na">forEach</span><span class="o">(</span><span class="n">sc</span> <span class="o">-&gt;</span> <span class="o">{</span>
+        <span class="c1">// TODO, compatible with ServiceConfig.export()
+</span><span class="c1"></span>        <span class="n">ServiceConfig</span> <span class="n">serviceConfig</span> <span class="o">=</span> <span class="o">(</span><span class="n">ServiceConfig</span><span class="o">)</span> <span class="n">sc</span><span class="o">;</span>
+        <span class="n">serviceConfig</span><span class="o">.</span><span class="na">setBootstrap</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+
+        <span class="c1">// exportAsync变量由：dubbo:provider.async 配置决定，
+</span><span class="c1"></span>        <span class="c1">// 默认为false，默认不开启异步暴露。
+</span><span class="c1"></span>        <span class="k">if</span> <span class="o">(</span><span class="n">exportAsync</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">ExecutorService</span> <span class="n">executor</span> <span class="o">=</span> <span class="n">executorRepository</span><span class="o">.</span><span class="na">getServiceExporterExecutor</span><span class="o">();</span>
+            <span class="n">Future</span><span class="o">&lt;?&gt;</span> <span class="n">future</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="na">submit</span><span class="o">(()</span> <span class="o">-&gt;</span> <span class="o">{</span>
+                <span class="n">sc</span><span class="o">.</span><span class="na">export</span><span class="o">();</span>
+                <span class="n">exportedServices</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">sc</span><span class="o">);</span>
+            <span class="o">});</span>
+            <span class="n">asyncExportingFutures</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">future</span><span class="o">);</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+
+            <span class="c1">// 逐个对ServiceBean配置进行服务暴露
+</span><span class="c1"></span>            <span class="c1">// 接下来进入export()方法实现
+</span><span class="c1"></span>            <span class="n">sc</span><span class="o">.</span><span class="na">export</span><span class="o">();</span>
+            <span class="n">exportedServices</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">sc</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">});</span>
+<span class="o">}</span>
+</code></pre></div><p>通过一个服务配置ServiceBean，进行服务的暴露
+<strong>org.apache.dubbo.config.ServiceConfig#export</strong></p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">export</span><span class="o">()</span> <span class="o">{</span>
+    <span class="c1">// 判断是否应该暴露服务，涉及两项配置：
+</span><span class="c1"></span>    <span class="c1">// 应用级别服务提供配置：dubbo:provider.export；
+</span><span class="c1"></span>    <span class="c1">// SpringBoot可以在配置文件中配置dubbo.provider.export=false
+</span><span class="c1"></span>    <span class="c1">// 服务级别服务提供配置：dubbo:service.export；
+</span><span class="c1"></span>    <span class="c1">// 也可以通过注解配置：@DubboService(export = false)
+</span><span class="c1"></span>    <span class="c1">// 服务级别配置优先级高于应用级别
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(!</span><span class="n">shouldExport</span><span class="o">())</span> <span class="o">{</span>
+        <span class="k">return</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="k">if</span> <span class="o">(</span><span class="n">bootstrap</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">bootstrap</span> <span class="o">=</span> <span class="n">DubboBootstrap</span><span class="o">.</span><span class="na">getInstance</span><span class="o">();</span>
+        <span class="n">bootstrap</span><span class="o">.</span><span class="na">init</span><span class="o">();</span>
+    <span class="o">}</span>
+
+    <span class="n">checkAndUpdateSubConfigs</span><span class="o">();</span>
+
+    <span class="c1">// 服务配置的元数据处理
+</span><span class="c1"></span>    <span class="c1">//init serviceMetadata
+</span><span class="c1"></span>    <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">setVersion</span><span class="o">(</span><span class="n">version</span><span class="o">);</span>
+    <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">setGroup</span><span class="o">(</span><span class="n">group</span><span class="o">);</span>
+    <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">setDefaultGroup</span><span class="o">(</span><span class="n">group</span><span class="o">);</span>
+
+    <span class="c1">// 设置要暴露服务的接口类型
+</span><span class="c1"></span>    <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">setServiceType</span><span class="o">(</span><span class="n">getInterfaceClass</span><span class="o">());</span>
+
+    <span class="c1">// 设置要暴露服务的接口名称
+</span><span class="c1"></span>    <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">setServiceInterfaceName</span><span class="o">(</span><span class="n">getInterface</span><span class="o">());</span>
+
+    <span class="c1">// 设置要暴露服务的具体本地实现类的实例
+</span><span class="c1"></span>    <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">setTarget</span><span class="o">(</span><span class="n">getRef</span><span class="o">());</span>
+
+    <span class="c1">// 是否需要延迟暴露，同export配置相似，也有服务级别与应用级别两层延时设置，
+</span><span class="c1"></span>    <span class="c1">// 服务级别优先级高于应用级别
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">shouldDelay</span><span class="o">())</span> <span class="o">{</span>
+        <span class="c1">// 延迟暴露
+</span><span class="c1"></span>        <span class="n">DELAY_EXPORT_EXECUTOR</span><span class="o">.</span><span class="na">schedule</span><span class="o">(</span><span class="k">this</span><span class="o">::</span><span class="n">doExport</span><span class="o">,</span> <span class="n">getDelay</span><span class="o">(),</span> <span class="n">TimeUnit</span><span class="o">.</span><span class="na">MILLISECONDS</span><span class="o">);</span>
+    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+        <span class="c1">// 不延迟，直接暴露
+</span><span class="c1"></span>        <span class="c1">// 接下来进入该方法实现
+</span><span class="c1"></span>        <span class="n">doExport</span><span class="o">();</span>
+    <span class="o">}</span>
+
+    <span class="n">exported</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div><p><strong>org.apache.dubbo.config.ServiceConfig#doExport</strong></p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">protected</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">doExport</span><span class="o">()</span> <span class="o">{</span>
+    <span class="c1">// unexported变量标记服务被关闭，如果服务被关闭了，不再重新暴露，抛出异常
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">unexported</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="n">IllegalStateException</span><span class="o">(</span><span class="s">&#34;The service &#34;</span> <span class="o">+</span> <span class="n">interfaceClass</span><span class="o">.</span><span class="na">getName</span><span class="o">()</span> <span class="o">+</span> <span class="s">&#34; has already unexported!&#34;</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="c1">// 如果服务已经暴露，跳过本次暴露
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">exported</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="c1">// 标记服务为已暴露
+</span><span class="c1"></span>    <span class="n">exported</span> <span class="o">=</span> <span class="kc">true</span><span class="o">;</span>
+
+    <span class="c1">// dubbo:service.path配置，官方文档释义：提供者上下文路径，为服务path的前缀
+</span><span class="c1"></span>    <span class="c1">// 如果为空，取用接口名称
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">StringUtils</span><span class="o">.</span><span class="na">isEmpty</span><span class="o">(</span><span class="n">path</span><span class="o">))</span> <span class="o">{</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">interfaceName</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="c1">// 继续服务暴露流程
+</span><span class="c1"></span>    <span class="c1">// 接下来进入该方法实现
+</span><span class="c1"></span>    <span class="n">doExportUrls</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div><p><strong>org.apache.dubbo.config.ServiceConfig#doExportUrls</strong></p>
+<blockquote>
+<p>以下部分涉及参考资料，来自Dubbo官方文档：
+<strong>注册中心配置</strong>。对应的配置类： <strong>org.apache.dubbo.config.RegistryConfig</strong>。同时如果有多个不同的注册中心，可以声明多个 <a href="dubbo:registry">dubbo:registry</a> 标签，并在 <a href="dubbo:service">dubbo:service</a> 或 <a href="dubbo:reference">dubbo:reference</a> 的 registry 属性指定使用的注册中心。
+<strong>registry.address属性</strong>：注册中心服务器地址，如果地址没有端口缺省为9090，同一集群内的多个地址用逗号分隔，如：ip:port,ip:port，不同集群的注册中心，请配置多个<a href="dubbo:registry">dubbo:registry</a>标签
+<strong>服务提供者协议配置</strong>。对应的配置类： <strong>org.apache.dubbo.config.ProtocolConfig</strong>。同时，如果需要支持多协议，可以声明多个 <a href="dubbo:protocol">dubbo:protocol</a> 标签，并在 <a href="dubbo:service">dubbo:service</a> 中通过 protocol 属性指定使用的协议。</p>
+</blockquote>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">private</span> <span class="kt">void</span> <span class="nf">doExportUrls</span><span class="o">()</span> <span class="o">{</span>
+    <span class="c1">//  获取「服务仓库」，暂且这么翻译吧
+</span><span class="c1"></span>    <span class="c1">// 这里使用了Dubbo SPI，
+</span><span class="c1"></span>    <span class="c1">// 关于Dubbo SPI机制，不清楚的可以参考我的另一篇博客
+</span><span class="c1"></span>    <span class="c1">// TODO:「这里是博客地址，现在还没写」
+</span><span class="c1"></span>    <span class="n">ServiceRepository</span> <span class="n">repository</span> <span class="o">=</span> <span class="n">ApplicationModel</span><span class="o">.</span><span class="na">getServiceRepository</span><span class="o">();</span>
+    <span class="c1">// 根据当前实际要暴露的接口类，创建服务描述对象
+</span><span class="c1"></span>    <span class="n">ServiceDescriptor</span> <span class="n">serviceDescriptor</span> <span class="o">=</span> <span class="n">repository</span><span class="o">.</span><span class="na">registerService</span><span class="o">(</span><span class="n">getInterfaceClass</span><span class="o">());</span>
+    <span class="c1">// 向服务仓库注册当前正在暴露的服务信息，
+</span><span class="c1"></span>    <span class="c1">// 包括服务的唯一名称，服务的实现类实例，服务描述，服务配置实例，服务元数据信息
+</span><span class="c1"></span>    <span class="n">repository</span><span class="o">.</span><span class="na">registerProvider</span><span class="o">(</span>
+            <span class="n">getUniqueServiceName</span><span class="o">(),</span>
+            <span class="n">ref</span><span class="o">,</span>
+            <span class="n">serviceDescriptor</span><span class="o">,</span>
+            <span class="k">this</span><span class="o">,</span>
+            <span class="n">serviceMetadata</span>
+    <span class="o">);</span>
+
+    <span class="c1">// 根据可能的多个注册中心配置，单个注册中心配置的address属性多个地址
+</span><span class="c1"></span>    <span class="c1">// 拼装得到所有的注册中心地址
+</span><span class="c1"></span>    <span class="n">List</span><span class="o">&lt;</span><span class="n">URL</span><span class="o">&gt;</span> <span class="n">registryURLs</span> <span class="o">=</span> <span class="n">ConfigValidationUtils</span><span class="o">.</span><span class="na">loadRegistries</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+
+    <span class="c1">// protocols是协议配置，允许初选多个协议配置
+</span><span class="c1"></span>    <span class="c1">// 遍历配置的所有协议，对每个协议都进行服务的暴露
+</span><span class="c1"></span>    <span class="k">for</span> <span class="o">(</span><span class="n">ProtocolConfig</span> <span class="n">protocolConfig</span> <span class="o">:</span> <span class="n">protocols</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">String</span> <span class="n">pathKey</span> <span class="o">=</span> <span class="n">URL</span><span class="o">.</span><span class="na">buildKey</span><span class="o">(</span><span class="n">getContextPath</span><span class="o">(</span><span class="n">protocolConfig</span><span class="o">)</span>
+                <span class="o">.</span><span class="na">map</span><span class="o">(</span><span class="n">p</span> <span class="o">-&gt;</span> <span class="n">p</span> <span class="o">+</span> <span class="s">&#34;/&#34;</span> <span class="o">+</span> <span class="n">path</span><span class="o">)</span>
+                <span class="o">.</span><span class="na">orElse</span><span class="o">(</span><span class="n">path</span><span class="o">),</span> <span class="n">group</span><span class="o">,</span> <span class="n">version</span><span class="o">);</span>
+        <span class="c1">// In case user specified path, register service one more time to map it to path.
+</span><span class="c1"></span>
+        <span class="c1">// 服务配置若制定了分组group，版本version信息，向「服务仓库」中注册不同名称的服务
+</span><span class="c1"></span>        <span class="n">repository</span><span class="o">.</span><span class="na">registerService</span><span class="o">(</span><span class="n">pathKey</span><span class="o">,</span> <span class="n">interfaceClass</span><span class="o">);</span>
+        <span class="c1">// TODO, uncomment this line once service key is unified
+</span><span class="c1"></span>        <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">setServiceKey</span><span class="o">(</span><span class="n">pathKey</span><span class="o">);</span>
+
+        <span class="c1">// 对每种协议都进行暴露
+</span><span class="c1"></span>        <span class="c1">// 接下来进入该方法实现继续分析
+</span><span class="c1"></span>        <span class="n">doExportUrlsFor1Protocol</span><span class="o">(</span><span class="n">protocolConfig</span><span class="o">,</span> <span class="n">registryURLs</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p><strong>org.apache.dubbo.config.ServiceConfig#doExportUrlsFor1Protocol</strong>
+这段代码很长，进行了一些删减，只保留了一些关键行</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">private</span> <span class="kt">void</span> <span class="nf">doExportUrlsFor1Protocol</span><span class="o">(</span><span class="n">ProtocolConfig</span> <span class="n">protocolConfig</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">URL</span><span class="o">&gt;</span> <span class="n">registryURLs</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">String</span> <span class="n">name</span> <span class="o">=</span> <span class="n">protocolConfig</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span>
+    <span class="c1">// 默认使用Dubbo协议
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">StringUtils</span><span class="o">.</span><span class="na">isEmpty</span><span class="o">(</span><span class="n">name</span><span class="o">))</span> <span class="o">{</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">DUBBO</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">String</span><span class="o">&gt;</span> <span class="n">map</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">String</span><span class="o">&gt;();</span>
+    <span class="c1">// 这里进行了灰常多的配置处理，把各种相关配置信息填充到map里面
+</span><span class="c1"></span>    <span class="c1">// 包括对接口类的方法的解析
+</span><span class="c1"></span>    <span class="o">...</span>
+    <span class="o">...</span>
+    <span class="o">...</span>
+
+    <span class="cm">/**
+</span><span class="cm">    * Here the token value configured by the provider is used to assign the value to ServiceConfig#token
+</span><span class="cm">    */</span>
+    <span class="c1">// service.token配置与provider.token配置
+</span><span class="c1"></span>    <span class="c1">// 依然是服务级别service的配置优先级高于应用级别provider的配置
+</span><span class="c1"></span>    <span class="k">if</span><span class="o">(</span><span class="n">ConfigUtils</span><span class="o">.</span><span class="na">isEmpty</span><span class="o">(</span><span class="n">token</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="n">provider</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="n">provider</span><span class="o">.</span><span class="na">getToken</span><span class="o">();</span>
+    <span class="o">}</span>
+    <span class="c1">// 令牌参数处理，添加到map
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(!</span><span class="n">ConfigUtils</span><span class="o">.</span><span class="na">isEmpty</span><span class="o">(</span><span class="n">token</span><span class="o">))</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">ConfigUtils</span><span class="o">.</span><span class="na">isDefault</span><span class="o">(</span><span class="n">token</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">TOKEN_KEY</span><span class="o">,</span> <span class="n">UUID</span><span class="o">.</span><span class="na">randomUUID</span><span class="o">().</span><span class="na">toString</span><span class="o">());</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+            <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">TOKEN_KEY</span><span class="o">,</span> <span class="n">token</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="c1">//init serviceMetadata attachments
+</span><span class="c1"></span>    <span class="n">serviceMetadata</span><span class="o">.</span><span class="na">getAttachments</span><span class="o">().</span><span class="na">putAll</span><span class="o">(</span><span class="n">map</span><span class="o">);</span>
+
+    <span class="c1">// export service
+</span><span class="c1"></span>    <span class="n">String</span> <span class="n">host</span> <span class="o">=</span> <span class="n">findConfigedHosts</span><span class="o">(</span><span class="n">protocolConfig</span><span class="o">,</span> <span class="n">registryURLs</span><span class="o">,</span> <span class="n">map</span><span class="o">);</span>
+    <span class="n">Integer</span> <span class="n">port</span> <span class="o">=</span> <span class="n">findConfigedPorts</span><span class="o">(</span><span class="n">protocolConfig</span><span class="o">,</span> <span class="n">name</span><span class="o">,</span> <span class="n">map</span><span class="o">);</span>
+    <span class="c1">// 根据map收集的各种配置参数，生成URL对象，后续通过URL对象进行服务的暴露
+</span><span class="c1"></span>    <span class="n">URL</span> <span class="n">url</span> <span class="o">=</span> <span class="k">new</span> <span class="n">URL</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">host</span><span class="o">,</span> <span class="n">port</span><span class="o">,</span> <span class="n">getContextPath</span><span class="o">(</span><span class="n">protocolConfig</span><span class="o">).</span><span class="na">map</span><span class="o">(</span><span class="n">p</span> <span class="o">-&gt;</span> <span class="n">p</span> <span class="o">+</span> <span class="s">&#34;/&#34;</span> <span class="o">+</span> <span class="n">path</span><span class="o">).</span><span class="na">orElse</span><span class="o">(</span><span class="n">path</span><span class="o">),</span> <span class="n">map</span><span class="o">);</span>
+
+    <span class="c1">// You can customize Configurator to append extra parameters
+</span><span class="c1"></span>    <span class="c1">// 这儿又使用了Dubbo SPI，意思是可以通过自定义配置程序，来添加额外的参数
+</span><span class="c1"></span>    <span class="c1">// TODO: 表示没用过，等知道具体使用场景回头补充一下
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">ExtensionLoader</span><span class="o">.</span><span class="na">getExtensionLoader</span><span class="o">(</span><span class="n">ConfiguratorFactory</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+            <span class="o">.</span><span class="na">hasExtension</span><span class="o">(</span><span class="n">url</span><span class="o">.</span><span class="na">getProtocol</span><span class="o">()))</span> <span class="o">{</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">ExtensionLoader</span><span class="o">.</span><span class="na">getExtensionLoader</span><span class="o">(</span><span class="n">ConfiguratorFactory</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+                <span class="o">.</span><span class="na">getExtension</span><span class="o">(</span><span class="n">url</span><span class="o">.</span><span class="na">getProtocol</span><span class="o">()).</span><span class="na">getConfigurator</span><span class="o">(</span><span class="n">url</span><span class="o">).</span><span class="na">configure</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="n">String</span> <span class="n">scope</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="na">getParameter</span><span class="o">(</span><span class="n">SCOPE_KEY</span><span class="o">);</span>
+    <span class="c1">// don&#39;t export when none is configured
+</span><span class="c1"></span>    <span class="c1">// Dubbo的scope属性，官方文档配置里面没找到解释
+</span><span class="c1"></span>    <span class="c1">// 大概逻辑是：scope配置的属性值不是none，就需要进行暴露
+</span><span class="c1"></span>    <span class="c1">// 不是remote，就需要进行本地的暴露，本地暴露是通过injvm协议进行暴露
+</span><span class="c1"></span>    <span class="c1">// 不是local，就需要进行远程的暴露
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(!</span><span class="n">SCOPE_NONE</span><span class="o">.</span><span class="na">equalsIgnoreCase</span><span class="o">(</span><span class="n">scope</span><span class="o">))</span> <span class="o">{</span>
+
+        <span class="c1">// export to local if the config is not remote (export to remote only when config is remote)
+</span><span class="c1"></span>        <span class="k">if</span> <span class="o">(!</span><span class="n">SCOPE_REMOTE</span><span class="o">.</span><span class="na">equalsIgnoreCase</span><span class="o">(</span><span class="n">scope</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">exportLocal</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
+        <span class="o">}</span>
+        <span class="c1">// export to remote if the config is not local (export to local only when config is local)
+</span><span class="c1"></span>        <span class="k">if</span> <span class="o">(!</span><span class="n">SCOPE_LOCAL</span><span class="o">.</span><span class="na">equalsIgnoreCase</span><span class="o">(</span><span class="n">scope</span><span class="o">))</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">CollectionUtils</span><span class="o">.</span><span class="na">isNotEmpty</span><span class="o">(</span><span class="n">registryURLs</span><span class="o">))</span> <span class="o">{</span>
+                <span class="c1">// 远程暴露要对一堆配置中心地址挨个暴露
+</span><span class="c1"></span>                <span class="k">for</span> <span class="o">(</span><span class="n">URL</span> <span class="n">registryURL</span> <span class="o">:</span> <span class="n">registryURLs</span><span class="o">)</span> <span class="o">{</span>
+                    <span class="c1">//if protocol is only injvm ,not register
+</span><span class="c1"></span>                    <span class="k">if</span> <span class="o">(</span><span class="n">LOCAL_PROTOCOL</span><span class="o">.</span><span class="na">equalsIgnoreCase</span><span class="o">(</span><span class="n">url</span><span class="o">.</span><span class="na">getProtocol</span><span class="o">()))</span> <span class="o">{</span>
+                        <span class="k">continue</span><span class="o">;</span>
+                    <span class="o">}</span>
+                    <span class="c1">//对URL的一些处理，好奇每一步细节逻辑可以自行翻代码debug查看
+</span><span class="c1"></span>                    <span class="o">...</span>
+                    <span class="o">...</span>
+                    <span class="o">...</span>
+
+                    <span class="c1">// For providers, this is used to enable custom proxy to generate invoker
+</span><span class="c1"></span>                    <span class="n">String</span> <span class="n">proxy</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="na">getParameter</span><span class="o">(</span><span class="n">PROXY_KEY</span><span class="o">);</span>
+                    <span class="c1">// 设置指定的生成动态代理方式，可选：jdk/javassist
+</span><span class="c1"></span>                    <span class="k">if</span> <span class="o">(</span><span class="n">StringUtils</span><span class="o">.</span><span class="na">isNotEmpty</span><span class="o">(</span><span class="n">proxy</span><span class="o">))</span> <span class="o">{</span>
+                        <span class="n">registryURL</span> <span class="o">=</span> <span class="n">registryURL</span><span class="o">.</span><span class="na">addParameter</span><span class="o">(</span><span class="n">PROXY_KEY</span><span class="o">,</span> <span class="n">proxy</span><span class="o">);</span>
+                    <span class="o">}</span>
+
+                    <span class="c1">// 重点，将服务的具体实现，通过动态代理包装一层，包装成一个invoker对象，便于调用
+</span><span class="c1"></span>                    <span class="c1">// PROXY_FACTORY变量使用了Dubbo SPI机制+自适应扩展,下面贴图展示了PROXY_FACTORY这个变量对应的类代码，是动态代理生成的
+</span><span class="c1"></span>                    <span class="c1">// 根据动态代理生成的代码中可以看到，url.getParameter(&#34;proxy&#34;, &#34;javassist&#34;);
+</span><span class="c1"></span>                    <span class="c1">// 根据上面代码所示的proxy参数，是在动态代理类中，结合Dubbo SPI机制，达到自适应扩展
+</span><span class="c1"></span>                    <span class="n">Invoker</span><span class="o">&lt;?&gt;</span> <span class="n">invoker</span> <span class="o">=</span> <span class="n">PROXY_FACTORY</span><span class="o">.</span><span class="na">getInvoker</span><span class="o">(</span><span class="n">ref</span><span class="o">,</span> <span class="o">(</span><span class="n">Class</span><span class="o">)</span> <span class="n">interfaceClass</span><span class="o">,</span> <span class="n">registryURL</span><span class="o">.</span><span class="na">addParameterAndEncoded</span><span class="o">(</span><span class="n">EXPORT_KEY</span><span class="o">,</span> <span class="n">url</span><span class="o">.</span><span class="na">toFullString</span><span class="o">()));</span>
+                    <span class="c1">// 将服务配置元数据与上面一行封装的invoker调用对象组合封装一层
+</span><span class="c1"></span>                    <span class="n">DelegateProviderMetaDataInvoker</span> <span class="n">wrapperInvoker</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DelegateProviderMetaDataInvoker</span><span class="o">(</span><span class="n">invoker</span><span class="o">,</span> <span class="k">this</span><span class="o">);</span>
+
+                    <span class="c1">// PROTOCOL变量也使用了Dubbo SPI机制+自适应扩展，可以参考PROXY_FACTORY的效果，此处不再赘述
+</span><span class="c1"></span>                    <span class="c1">// 根据配置对应的Protocol进行export()，默认为Dubbo协议，
+</span><span class="c1"></span>                    <span class="c1">// 接下来的从协议层继续暴露的分析需进入org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol#export方法
+</span><span class="c1"></span>                    <span class="n">Exporter</span><span class="o">&lt;?&gt;</span> <span class="n">exporter</span> <span class="o">=</span> <span class="n">PROTOCOL</span><span class="o">.</span><span class="na">export</span><span class="o">(</span><span class="n">wrapperInvoker</span><span class="o">);</span>
+                    <span class="n">exporters</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">exporter</span><span class="o">);</span>
+                <span class="o">}</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">logger</span><span class="o">.</span><span class="na">isInfoEnabled</span><span class="o">())</span> <span class="o">{</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="na">info</span><span class="o">(</span><span class="s">&#34;Export dubbo service &#34;</span> <span class="o">+</span> <span class="n">interfaceClass</span><span class="o">.</span><span class="na">getName</span><span class="o">()</span> <span class="o">+</span> <span class="s">&#34; to url &#34;</span> <span class="o">+</span> <span class="n">url</span><span class="o">);</span>
+                <span class="o">}</span>
+                <span class="c1">// 如果没有出现注册中心配置，即配置的是直连模式，会走到这里
+</span><span class="c1"></span>                <span class="c1">// 其余逻辑同上
+</span><span class="c1"></span>                <span class="n">Invoker</span><span class="o">&lt;?&gt;</span> <span class="n">invoker</span> <span class="o">=</span> <span class="n">PROXY_FACTORY</span><span class="o">.</span><span class="na">getInvoker</span><span class="o">(</span><span class="n">ref</span><span class="o">,</span> <span class="o">(</span><span class="n">Class</span><span class="o">)</span> <span class="n">interfaceClass</span><span class="o">,</span> <span class="n">url</span><span class="o">);</span>
+                <span class="n">DelegateProviderMetaDataInvoker</span> <span class="n">wrapperInvoker</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DelegateProviderMetaDataInvoker</span><span class="o">(</span><span class="n">invoker</span><span class="o">,</span> <span class="k">this</span><span class="o">);</span>
+
+                <span class="n">Exporter</span><span class="o">&lt;?&gt;</span> <span class="n">exporter</span> <span class="o">=</span> <span class="n">PROTOCOL</span><span class="o">.</span><span class="na">export</span><span class="o">(</span><span class="n">wrapperInvoker</span><span class="o">);</span>
+                <span class="n">exporters</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">exporter</span><span class="o">);</span>
+            <span class="o">}</span>
+            <span class="cm">/**
+</span><span class="cm">                * @since 2.7.0
+</span><span class="cm">                * ServiceData Store
+</span><span class="cm">                */</span>
+            <span class="c1">// 服务暴露后，将服务地址记录到本地内存
+</span><span class="c1"></span>            <span class="c1">// 这里也使用了Dubbo SPI，默认是local，
+</span><span class="c1"></span>            <span class="c1">// 即local=org.apache.dubbo.metadata.store.InMemoryWritableMetadataService实现
+</span><span class="c1"></span>            <span class="n">WritableMetadataService</span> <span class="n">metadataService</span> <span class="o">=</span> <span class="n">WritableMetadataService</span><span class="o">.</span><span class="na">getExtension</span><span class="o">(</span><span class="n">url</span><span class="o">.</span><span class="na">getParameter</span><span class="o">(</span><span class="n">METADATA_KEY</span><span class="o">,</span> <span class="n">DEFAULT_METADATA_STORAGE_TYPE</span><span class="o">));</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">metadataService</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">metadataService</span><span class="o">.</span><span class="na">publishServiceDefinition</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">urls</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div><p>PROXY_FACTORY变量的类型，动态代理生成的代码：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309153252.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309153252.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309153252.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309153252.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309153252.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309153252.png" />
+这里再贴一下PROTOCOL变量类型的动态代理代码，因为这个protocol.export()方法执行后，有一个小插曲，有这个代码细节会更清晰一些。
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309160106.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309160106.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309160106.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309160106.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309160106.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309160106.png" />
+理想中代码应该执行到DubboProtocol类了，但是其实中间还有一个闯入者，根据下图分析：
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309161026.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309161026.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309161026.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309161026.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309161026.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309161026.png" />
+可以看到在执行export()方法时，传入的变量，getUrl().getProtocol()得到的结果是registry，所以PTOTOCOL变量对应的类的export()方法执行，通过Dubbo SPI机制+自适应，先来到了
+<strong>org.apache.dubbo.registry.integration.RegistryProtocol#export</strong>
+这一层是对注册中心协议的处理，如使用了zookeeper作为注册中心，则可以认为注册中心协议为zookeeper。这一块的逻辑不详细解析代码了，简单叙述下。</p>
+<ol>
+<li>这一行通过Dubbo SPI，执行了DubboProtocol.export(),将服务以dubbo协议暴露。
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">final</span> <span class="n">ExporterChangeableWrapper</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">exporter</span> <span class="o">=</span> <span class="n">doLocalExport</span><span class="o">(</span><span class="n">originInvoker</span><span class="o">,</span> <span class="n">providerUrl</span><span class="o">);</span>
+</code></pre></div></li>
+<li>把服务地址注册到zookeeper，本质就是在zookeeper上新建节点，存储如下格式的信息：
+protocol://ip:port/interfaceName?serviceParams&amp;providerParams
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">register</span><span class="o">(</span><span class="n">registryUrl</span><span class="o">,</span> <span class="n">registeredProviderUrl</span><span class="o">);</span>
+</code></pre></div></li>
+</ol>
+<p>还有涉及注册协议监听器，RegistryProtocolListener，通过实现自己的监听器来定制功能。
+接下来就是协议层的暴露，进入代码方法
+<strong>org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol#export</strong>
+关键代码：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="c1">// 打开服务
+</span><span class="c1"></span><span class="n">openServer</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
+</code></pre></div><p>后面的代码相对前面那些没有那么关键，就不再贴代码进行解释。
+通过流程图简单理解下后续的流程。
+<img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309230612.png"
+        data-srcset="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309230612.png, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309230612.png 1.5x, https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309230612.png 2x"
+        data-sizes="auto"
+        alt="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309230612.png"
+        title="https://cdn.jsdelivr.net/gh/yitulin/pictures/images/dubbo_20210309230612.png" />
+自此，Dubbo的服务暴露流程算是解析结束了，而在起点处的</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">org</span><span class="o">.</span><span class="na">apache</span><span class="o">.</span><span class="na">dubbo</span><span class="o">.</span><span class="na">config</span><span class="o">.</span><span class="na">bootstrap</span><span class="o">.</span><span class="na">DubboBootstrap</span><span class="err">#</span><span class="n">exportServices</span>
+</code></pre></div><p>代码下面没几行，出现了一行代码：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">org</span><span class="o">.</span><span class="na">apache</span><span class="o">.</span><span class="na">dubbo</span><span class="o">.</span><span class="na">config</span><span class="o">.</span><span class="na">bootstrap</span><span class="o">.</span><span class="na">DubboBootstrap</span><span class="err">#</span><span class="n">referServices</span>
+</code></pre></div><p>显然，这里有去进行服务的引入。关于服务引入流程，请听下回分解。</p>
+<h3 id="流程图总结回顾">流程图总结回顾</h3>
+<p>下次一定！</p>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2021-03-09</span>
+            </div>
+            <div class="post-info-license"></div>
+        </div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw"></i>&nbsp;<a href="/tags/dubbo/">Dubbo</a>,&nbsp;<a href="/tags/spring/">Spring</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="/">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.81.0">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.10"><i class="far fa-kiss-wink-heart fa-fw"></i> LoveIt</a>
+                </div><div class="footer-line"><i class="far fa-copyright fa-fw"></i><span itemprop="copyrightYear">2021</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="/" target="_blank">yitu</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw"></i>
+            </a>
+        </div><script type="text/javascript" src="/lib/smooth-scroll/smooth-scroll.min.js"></script><script type="text/javascript" src="/lib/lazysizes/lazysizes.min.js"></script><script type="text/javascript" src="/lib/clipboard/clipboard.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":10},"comment":{}};</script><script type="text/javascript" src="/js/theme.min.js"></script></body>
+</html>
